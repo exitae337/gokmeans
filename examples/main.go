@@ -9,7 +9,7 @@ import (
 
 func main() {
 	moduleName := "GoKmeans: "
-	if ok, err := gokmeans.KmeansGo("../../storage/file.exel", 6, 4); err != nil {
+	if ok, err := gokmeans.KmeansGo("../../storage/file.exel", 6, 3); err != nil {
 		log.Fatal(moduleName, err)
 	} else {
 		fmt.Println(ok)
