@@ -32,7 +32,7 @@ func KmeansGo(pathToFile, sheetName string, k, measurements int) (map[int]float6
 	if err != nil {
 		return nil, err
 	}
-	// Reading and working rows
+	// Reading and working with rows
 	rows, err := file.GetRows(sheetName)
 	if err != nil {
 		return nil, err
