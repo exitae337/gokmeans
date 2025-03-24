@@ -1,6 +1,7 @@
 package kmeans
 
 import (
+	"fmt"
 	"math"
 	"math/rand/v2"
 	"strconv"
@@ -22,8 +23,15 @@ type Klaster struct {
 	KlasterNumber      int
 }
 
+// Distance
+type Distance struct {
+	PointPointer *Point
+	Distance     float64
+	Klaster      *Klaster
+}
+
 // Function. Return -> map[int]float64, error
-func KmeansGo(pathToFile, sheetName string, k, measurements int) (map[int]float64, error) {
+func KmeansGo(pathToFile, sheetName string, k, measurements int) (map[*Klaster][]Point, error) {
 	var pointsArray []Point
 	var klastersArray []Klaster
 	// Working with Excel file
@@ -48,19 +56,50 @@ func KmeansGo(pathToFile, sheetName string, k, measurements int) (map[int]float6
 		}
 		pointsArray = append(pointsArray, point)
 	}
+
+	// Length of PointsArray
+	N := len(pointsArray)
+
 	// Init Klasters for kmeans
 	for i := 0; i < k; i++ {
-		n := rand.IntN(len(pointsArray) - 1)
+		n := rand.IntN(N - 1)
 		klastersArray = append(klastersArray, Klaster{
 			KlasterValues: pointsArray[n].PointValues,
 			KlasterNumber: i,
 		})
 	}
 	// Init distance map
-	distances := make(map[int][]float64)
+	distances := make(map[int][]Distance)
+
 	// Count distances from Klaster to all Points
 	for _, klaster := range klastersArray {
 		distances[klaster.KlasterNumber] = distanceBetween(&klaster, &pointsArray)
+	}
+
+	minDistances := make([]Distance, N)
+
+	// Points to Klasters
+	for _, distToPoints := range distances {
+		for i, val := range distToPoints {
+			if minDistances[i].Distance > val.Distance {
+				minDistances[i] = val
+			}
+		}
+	}
+
+	// Points to -> Klaster(PointsArray)
+	for _, klaster := range klastersArray {
+		for _, dist := range minDistances {
+			if klaster.KlasterNumber == dist.Klaster.KlasterNumber {
+				klaster.PointsKlasterArray = append(klaster.PointsKlasterArray, *dist.PointPointer)
+			}
+		}
+	}
+
+	for _, klaster := range klastersArray {
+		for _, point := range klaster.PointsKlasterArray {
+			fmt.Printf("Klaster Number: %v, Point: %v", klaster.KlasterNumber, point)
+		}
 	}
 
 	// TODO
@@ -68,14 +107,18 @@ func KmeansGo(pathToFile, sheetName string, k, measurements int) (map[int]float6
 }
 
 // Euclidean distance
-func distanceBetween(klaster *Klaster, points *[]Point) []float64 {
-	distances := make([]float64, len(klaster.KlasterValues))
+func distanceBetween(klaster *Klaster, points *[]Point) []Distance {
+	distances := make([]Distance, len(klaster.KlasterValues))
 	for _, point := range *points {
 		sumKvadrCoord := 0.0
 		for i, coord := range point.PointValues {
 			sumKvadrCoord += math.Pow(klaster.KlasterValues[i]-coord, 2)
 		}
-		distances = append(distances, math.Sqrt(sumKvadrCoord))
+		distances = append(distances, Distance{
+			Klaster:      klaster,
+			Distance:     math.Sqrt(sumKvadrCoord),
+			PointPointer: &point,
+		})
 	}
 	return distances
 }
