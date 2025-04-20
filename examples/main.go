@@ -2,16 +2,19 @@ package main
 
 import (
 	"fmt"
-	"log"
 
 	gokmeans "github.com/exitae337/gokmeans/lib/kmeans"
 )
 
 func main() {
 	moduleName := "GoKmeans: "
-	if ok, err := gokmeans.KmeansGo("points.xlsx", "Sheet1", 4, 100, 0.001); err != nil {
-		log.Fatal(moduleName, err)
-	} else {
-		fmt.Println(ok)
+	clusters, err := gokmeans.KmeansGo("points.xlsx", "Sheet1", 4, 100, 0.001, true)
+	if err != nil {
+		fmt.Println(moduleName, " : ", err)
+	}
+	for i, cluster := range clusters {
+		fmt.Printf("Cluster %d:\n", i+1)
+		fmt.Printf("Centroid: %v\n", cluster.Centroid)
+		fmt.Printf("Points: %v\n\n", cluster.ClasterPoints)
 	}
 }
