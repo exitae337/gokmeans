@@ -8,7 +8,7 @@ import (
 
 func main() {
 	moduleName := "GoKmeans: "
-	clusters, err := gokmeans.KmeansGo("points.xlsx", "Sheet1", 4, 100, 0.001, true)
+	clusters, err := gokmeans.KmeansGo("points.xlsx", "Sheet1", 4, 100, 0.001, true, 0)
 	if err != nil {
 		fmt.Println(moduleName, " : ", err)
 	}

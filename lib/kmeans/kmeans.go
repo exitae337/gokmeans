@@ -20,12 +20,20 @@ type Cluster struct {
 }
 
 // Main function. Return -> []Cluster, error
-func KmeansGo(pathToFile, sheetName string, k, maxIterations int, threshold float64, kmeans_plus bool) ([]Cluster, error) {
+func KmeansGo(pathToFile, sheetName string, k, maxIterations int, threshold float64, kmeans_plus bool, batchSize int) ([]Cluster, error) {
 	points, err := takePointsFromExel(pathToFile, sheetName)
 	if err != nil {
 		return nil, err
 	}
 	// Algorythm
+	if batchSize > 0 && batchSize < len(points) {
+		return miniBatchKmeans(points, k, batchSize, maxIterations, threshold)
+	}
+	return ClassicKMeans(points, k, maxIterations, kmeans_plus, threshold)
+}
+
+// Classic K-means
+func ClassicKMeans(points []Point, k int, maxIterations int, kmeans_plus bool, threshold float64) ([]Cluster, error) {
 	if k <= 0 || len(points) <= k {
 		return nil, fmt.Errorf("value of 'k' parameter is invalid: zero or bigger than points count -> k=%d", k)
 	}
@@ -87,6 +95,59 @@ func takePointsFromExel(pathToFile, sheetName string) ([]Point, error) {
 		currentPoints = append(currentPoints, currentPoint)
 	}
 	return currentPoints, nil
+}
+
+// Mini-Batch K-means (with batches)
+func miniBatchKmeans(points []Point, k int, batchSize int, maxIterations int, threshold float64) ([]Cluster, error) {
+	if k <= 0 || k >= len(points) {
+		return nil, fmt.Errorf("value of 'k' parameter is invalid: zero or bigger than points count -> k=%d", k)
+	}
+	randSeed := rand.NewSource(time.Now().UnixNano())
+	centroids := centroidsInitPP(points, k)
+	randForMiniBatch := rand.New(randSeed)
+
+	var clusters []Cluster
+	for i := 0; i < maxIterations; i++ {
+		batch := make([]Point, batchSize)
+		perm := randForMiniBatch.Perm(len(points))[:batchSize]
+		for j, idx := range perm {
+			batch[j] = points[idx]
+		}
+		clusters = assignPoints(batch, centroids)
+		newCentroids := updateCentroidsWithMiniBatch(clusters, centroids, 1.0/(float64(i+1)))
+		if !centroidsChanged(centroids, newCentroids, threshold) {
+			break
+		}
+		centroids = newCentroids
+	}
+	return assignPoints(points, centroids), nil
+}
+
+// Update for Mini-Batch
+func updateCentroidsWithMiniBatch(clusters []Cluster, oldCentroids []Point, learningRate float64) []Point {
+	newCentroids := make([]Point, len(clusters))
+	for i, cluster := range clusters {
+		newCentroids[i] = make(Point, len(cluster.Centroid))
+		copy(newCentroids[i], oldCentroids[i])
+		if len(cluster.ClasterPoints) == 0 {
+			continue
+		}
+		// Middle for mini-batch
+		batchMean := make(Point, len(cluster.Centroid))
+		for _, p := range cluster.ClasterPoints {
+			for j := range p {
+				batchMean[j] += p[j]
+			}
+		}
+		for j := range batchMean {
+			batchMean[j] /= float64(len(cluster.ClasterPoints))
+		}
+
+		for j := range newCentroids[i] {
+			newCentroids[i][j] = (1-learningRate)*newCentroids[i][j] + learningRate*batchMean[j]
+		}
+	}
+	return newCentroids
 }
 
 // Centroids Init -> random choice
@@ -175,7 +236,7 @@ func assignPoints(points []Point, centroids []Point) []Cluster {
 	return clusters
 }
 
-// Update Centroids
+// Update Centroids (Classic K-means)
 func updateCenrtoids(clusters []Cluster) []Point {
 	newCentroids := make([]Point, len(clusters))
 	for i, cluster := range clusters {
