@@ -3,122 +3,163 @@ package kmeans
 import (
 	"fmt"
 	"math"
-	"math/rand/v2"
+	"math/rand"
 	"strconv"
+	"time"
 
 	"github.com/xuri/excelize/v2"
 )
 
-// Point struct
-type Point struct {
-	PointValues       []float64
-	DistanceToKlaster float64
-	MetkaKlaster      int
-}
+// Point type
+type Point []float64
 
-// Klaster struct
-type Klaster struct {
-	KlasterValues      []float64
-	PointsKlasterArray []Point
-	KlasterNumber      int
-}
-
-// Distance
-type Distance struct {
-	PointPointer *Point
-	Distance     float64
-	Klaster      *Klaster
+// Cluster struct
+type Cluster struct {
+	Centroid      Point
+	ClasterPoints []Point
 }
 
 // Function. Return -> map[int]float64, error
-func KmeansGo(pathToFile, sheetName string, k, measurements int) (map[*Klaster][]Point, error) {
-	var pointsArray []Point
-	var klastersArray []Klaster
+func KmeansGo(pathToFile, sheetName string, k, maxIterations int, threshold float64) ([]Cluster, error) {
+	points, err := takePointsFromExel(pathToFile, sheetName)
+	if err != nil {
+		return nil, err
+	}
+	// Algorythm
+	if k <= 0 || len(points) <= k {
+		return nil, fmt.Errorf("value of 'k' parameter is invalid: zero or bigger than points count -> k=%d", k)
+	}
+	centroids := centroidsInit(points, k)
+	var clusters []Cluster
+
+	for i := 0; i < maxIterations; i++ {
+		clusters = assignPoints(points, centroids)
+		newCentroids := updateCenrtoids(clusters)
+
+		if !centroidsChanged(centroids, newCentroids, threshold) {
+			break
+		}
+
+		centroids = newCentroids
+	}
+	return clusters, nil
+}
+
+// Take Points From exel file
+func takePointsFromExel(pathToFile, sheetName string) ([]Point, error) {
 	// Working with Excel file
 	// Open file
-	file, err := excelize.OpenFile(pathToFile)
+	f, err := excelize.OpenFile(pathToFile)
 	if err != nil {
 		return nil, err
 	}
-	// Reading and working with rows
-	rows, err := file.GetRows(sheetName)
+	// Close file
+	defer func() {
+		if err := f.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
+	// Reading and working with rows (Current Points array from exel file)
+	rows, err := f.GetRows(sheetName)
 	if err != nil {
 		return nil, err
 	}
+	currentPoints := []Point{}
 	for _, row := range rows {
-		point := Point{}
-		for _, colCel := range row {
-			pointKoord, err := strconv.ParseFloat(colCel, 64)
+		currentPoint := Point{}
+		for _, colCell := range row {
+			// Convert to float64
+			floatValue, err := strconv.ParseFloat(colCell, 64)
 			if err != nil {
 				return nil, err
 			}
-			point.PointValues = append(point.PointValues, pointKoord)
+			currentPoint = append(currentPoint, floatValue)
 		}
-		pointsArray = append(pointsArray, point)
+		currentPoints = append(currentPoints, currentPoint)
+	}
+	return currentPoints, nil
+}
+
+// Centroids Init -> random choice
+func centroidsInit(points []Point, k int) []Point {
+	seedInit := rand.NewSource(time.Now().UnixNano())
+	randInit := rand.New(seedInit)
+	centroids := make([]Point, k)
+	perm := randInit.Perm(len(points))[:k]
+	for i, idx := range perm {
+		centroids[i] = make(Point, len(points[idx]))
+		copy(centroids[i], points[idx])
+	}
+	return centroids
+}
+
+// Assign Points to Klasters
+func assignPoints(points []Point, centroids []Point) []Cluster {
+	clusters := make([]Cluster, len(centroids))
+	for i := range clusters {
+		clusters[i].Centroid = make(Point, len(centroids[i]))
+		copy(clusters[i].Centroid, centroids[i])
 	}
 
-	// Length of PointsArray
-	N := len(pointsArray)
+	for _, p := range points {
+		minDistance := math.MaxFloat64
+		clusterIdx := 0
 
-	// Init Klasters for kmeans
-	for i := 0; i < k; i++ {
-		n := rand.IntN(N - 1)
-		klastersArray = append(klastersArray, Klaster{
-			KlasterValues: pointsArray[n].PointValues,
-			KlasterNumber: i,
-		})
-	}
-	// Init distance map
-	distances := make(map[int][]Distance)
-
-	// Count distances from Klaster to all Points
-	for _, klaster := range klastersArray {
-		distances[klaster.KlasterNumber] = distanceBetween(&klaster, &pointsArray)
-	}
-
-	minDistances := make([]Distance, N)
-
-	// Points to Klasters
-	for _, distToPoints := range distances {
-		for i, val := range distToPoints {
-			if minDistances[i].Distance > val.Distance {
-				minDistances[i] = val
+		for i, c := range centroids {
+			currentDistance := p.distanceBetween(c)
+			if currentDistance < minDistance {
+				minDistance = currentDistance
+				clusterIdx = i
 			}
 		}
-	}
 
-	// Points to -> Klaster(PointsArray)
-	for _, klaster := range klastersArray {
-		for _, dist := range minDistances {
-			if klaster.KlasterNumber == dist.Klaster.KlasterNumber {
-				klaster.PointsKlasterArray = append(klaster.PointsKlasterArray, *dist.PointPointer)
+		clusters[clusterIdx].ClasterPoints = append(clusters[clusterIdx].ClasterPoints, p)
+	}
+	return clusters
+}
+
+// Update Centroids
+func updateCenrtoids(clusters []Cluster) []Point {
+	newCentroids := make([]Point, len(clusters))
+	for i, cluster := range clusters {
+		if len(cluster.ClasterPoints) == 0 {
+			newCentroids[i] = make(Point, len(cluster.ClasterPoints))
+			copy(newCentroids[i], cluster.Centroid)
+			continue
+		}
+		newCentroid := make(Point, len(cluster.Centroid))
+		for _, p := range cluster.ClasterPoints {
+			for j := range p {
+				newCentroid[j] += p[j]
 			}
 		}
+		for j := range newCentroid {
+			newCentroid[j] /= float64(len(cluster.ClasterPoints))
+		}
+		newCentroids[i] = newCentroid
 	}
+	return newCentroids
+}
 
-	for _, klaster := range klastersArray {
-		for _, point := range klaster.PointsKlasterArray {
-			fmt.Printf("Klaster Number: %v, Point: %v", klaster.KlasterNumber, point)
+// Convergence check
+func centroidsChanged(oldCentroids, newCentroids []Point, threshold float64) bool {
+	if len(oldCentroids) != len(newCentroids) {
+		return true
+	}
+	for i := range oldCentroids {
+		if oldCentroids[i].distanceBetween(newCentroids[i]) > threshold {
+			return true
 		}
 	}
-
-	// TODO
-	return nil, nil
+	return false
 }
 
 // Euclidean distance
-func distanceBetween(klaster *Klaster, points *[]Point) []Distance {
-	distances := make([]Distance, len(klaster.KlasterValues))
-	for _, point := range *points {
-		sumKvadrCoord := 0.0
-		for i, coord := range point.PointValues {
-			sumKvadrCoord += math.Pow(klaster.KlasterValues[i]-coord, 2)
-		}
-		distances = append(distances, Distance{
-			Klaster:      klaster,
-			Distance:     math.Sqrt(sumKvadrCoord),
-			PointPointer: &point,
-		})
+func (p Point) distanceBetween(other Point) float64 {
+	sum := 0.0
+	for i := range p {
+		diff := p[i] - other[i]
+		sum += diff * diff
 	}
-	return distances
+	return math.Sqrt(sum)
 }
