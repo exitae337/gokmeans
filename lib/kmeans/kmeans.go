@@ -104,10 +104,12 @@ func centroidsInit(points []Point, k int) []Point {
 
 // Centroids init PP
 func centroidsInitPP(points []Point, k int) []Point {
-	rand.Seed(time.Now().UnixNano())
+	seedInit := rand.NewSource(time.Now().UnixNano())
+	randInit := rand.New(seedInit)
+
 	centroids := make([]Point, k)
 
-	firstIdx := rand.Intn(len(points))
+	firstIdx := randInit.Intn(len(points))
 	centroids[0] = make(Point, len(points[firstIdx]))
 	copy(centroids[0], points[firstIdx])
 
@@ -129,7 +131,7 @@ func centroidsInitPP(points []Point, k int) []Point {
 			sum += distances[j]
 		}
 
-		r := rand.Float64() * sum
+		r := randInit.Float64() * sum
 		cumSum := 0.0
 		selectedIdx := 0
 
