@@ -19,8 +19,8 @@ type Cluster struct {
 	ClasterPoints []Point
 }
 
-// Function. Return -> map[int]float64, error
-func KmeansGo(pathToFile, sheetName string, k, maxIterations int, threshold float64) ([]Cluster, error) {
+// Main function. Return -> []Cluster, error
+func KmeansGo(pathToFile, sheetName string, k, maxIterations int, threshold float64, kmeans_plus bool) ([]Cluster, error) {
 	points, err := takePointsFromExel(pathToFile, sheetName)
 	if err != nil {
 		return nil, err
@@ -29,7 +29,16 @@ func KmeansGo(pathToFile, sheetName string, k, maxIterations int, threshold floa
 	if k <= 0 || len(points) <= k {
 		return nil, fmt.Errorf("value of 'k' parameter is invalid: zero or bigger than points count -> k=%d", k)
 	}
-	centroids := centroidsInit(points, k)
+
+	var centroids []Point
+
+	// K-maens++ or K-means
+	if kmeans_plus {
+		centroids = centroidsInitPP(points, k)
+	} else {
+		centroids = centroidsInit(points, k)
+	}
+
 	var clusters []Cluster
 
 	for i := 0; i < maxIterations; i++ {
@@ -90,6 +99,52 @@ func centroidsInit(points []Point, k int) []Point {
 		centroids[i] = make(Point, len(points[idx]))
 		copy(centroids[i], points[idx])
 	}
+	return centroids
+}
+
+// Centroids init PP
+func centroidsInitPP(points []Point, k int) []Point {
+	rand.Seed(time.Now().UnixNano())
+	centroids := make([]Point, k)
+
+	firstIdx := rand.Intn(len(points))
+	centroids[0] = make(Point, len(points[firstIdx]))
+	copy(centroids[0], points[firstIdx])
+
+	for i := 1; i < k; i++ {
+		distances := make([]float64, len(points))
+		sum := 0.0
+
+		for j, p := range points {
+			minDist := math.MaxFloat64
+			for _, c := range centroids[:i] {
+				if c != nil {
+					dist := p.distanceBetween(c)
+					if dist < minDist {
+						minDist = dist
+					}
+				}
+			}
+			distances[j] = minDist * minDist
+			sum += distances[j]
+		}
+
+		r := rand.Float64() * sum
+		cumSum := 0.0
+		selectedIdx := 0
+
+		for j, d := range distances {
+			cumSum += d
+			if cumSum >= r {
+				selectedIdx = j
+				break
+			}
+		}
+
+		centroids[i] = make(Point, len(points[selectedIdx]))
+		copy(centroids[i], points[selectedIdx])
+	}
+
 	return centroids
 }
 
