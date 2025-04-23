@@ -136,5 +136,15 @@ func main() {
 }
 ```
 
+But you can **combine** initializations:
+
+```Go
+	clusters, err := gokmeans.KmeansGo("points.xlsx", "Sheet1", 4, 100, 0.001, true, 6) // K-means++ init && Mini-batch init
+	// Errors handling
+    if err != nil {
+		// Logic of working with error
+	}
+```
+
 🔧 Contributions welcome! Report issues or submit PRs.
-📜 License: MIT
+📜 License: Apache License, Version 2.0
