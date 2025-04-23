@@ -16,7 +16,7 @@ type Point []float64
 // Cluster struct
 type Cluster struct {
 	Centroid      Point
-	ClasterPoints []Point
+	ClusterPoints []Point
 }
 
 // Main function. Return -> []Cluster, error
@@ -129,18 +129,18 @@ func updateCentroidsWithMiniBatch(clusters []Cluster, oldCentroids []Point, lear
 	for i, cluster := range clusters {
 		newCentroids[i] = make(Point, len(cluster.Centroid))
 		copy(newCentroids[i], oldCentroids[i])
-		if len(cluster.ClasterPoints) == 0 {
+		if len(cluster.ClusterPoints) == 0 {
 			continue
 		}
 		// Middle for mini-batch
 		batchMean := make(Point, len(cluster.Centroid))
-		for _, p := range cluster.ClasterPoints {
+		for _, p := range cluster.ClusterPoints {
 			for j := range p {
 				batchMean[j] += p[j]
 			}
 		}
 		for j := range batchMean {
-			batchMean[j] /= float64(len(cluster.ClasterPoints))
+			batchMean[j] /= float64(len(cluster.ClusterPoints))
 		}
 
 		for j := range newCentroids[i] {
@@ -231,7 +231,7 @@ func assignPoints(points []Point, centroids []Point) []Cluster {
 			}
 		}
 
-		clusters[clusterIdx].ClasterPoints = append(clusters[clusterIdx].ClasterPoints, p)
+		clusters[clusterIdx].ClusterPoints = append(clusters[clusterIdx].ClusterPoints, p)
 	}
 	return clusters
 }
@@ -240,19 +240,19 @@ func assignPoints(points []Point, centroids []Point) []Cluster {
 func updateCenrtoids(clusters []Cluster) []Point {
 	newCentroids := make([]Point, len(clusters))
 	for i, cluster := range clusters {
-		if len(cluster.ClasterPoints) == 0 {
-			newCentroids[i] = make(Point, len(cluster.ClasterPoints))
+		if len(cluster.ClusterPoints) == 0 {
+			newCentroids[i] = make(Point, len(cluster.ClusterPoints))
 			copy(newCentroids[i], cluster.Centroid)
 			continue
 		}
 		newCentroid := make(Point, len(cluster.Centroid))
-		for _, p := range cluster.ClasterPoints {
+		for _, p := range cluster.ClusterPoints {
 			for j := range p {
 				newCentroid[j] += p[j]
 			}
 		}
 		for j := range newCentroid {
-			newCentroid[j] /= float64(len(cluster.ClasterPoints))
+			newCentroid[j] /= float64(len(cluster.ClusterPoints))
 		}
 		newCentroids[i] = newCentroid
 	}

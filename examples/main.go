@@ -15,6 +15,6 @@ func main() {
 	for i, cluster := range clusters {
 		fmt.Printf("Cluster %d:\n", i+1)
 		fmt.Printf("Centroid: %v\n", cluster.Centroid)
-		fmt.Printf("Points: %v\n\n", cluster.ClasterPoints)
+		fmt.Printf("Points: %v\n\n", cluster.ClusterPoints)
 	}
 }
