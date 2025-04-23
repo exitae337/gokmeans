@@ -8,7 +8,6 @@ This module implements popular K-means variants of efficient clustering:
 - **Mini-Batch K-means**: Optimized for large datasets using small random *batches*, trading precision for speed 
 
 *Designed for scalability and simplicity*
-**Contributions are welcome!**
 
 # Module installation
 
@@ -19,6 +18,12 @@ go get github.com/exitae337/gokmeans
 # Using
 
 First, you need to prepare an *excel table* with points and their **measurements** (coordinates)
+
+*For example*:
+
+       A       B       C
+1  0.123   0.456   0.786 -> Point's coordinates (three measurements)
+
 
 The main function of this module called **KmeansGo**:
 ``` Go
@@ -94,7 +99,7 @@ import (
 
 func main() {
     // Using
-    clusters, err := gokmeans.KmeansGo("points.xlsx", "Sheet1", 4, 100, 0.001, false, 0)
+    clusters, err := gokmeans.KmeansGo("points.xlsx", "Sheet1", 4, 100, 0.001, true, 0) // Mini-batch size = 0
 	// Errors handling
     if err != nil {
 		// Logic of working with error
@@ -118,10 +123,13 @@ import (
 
 func main() {
     // Using
-    clusters, err := gokmeans.KmeansGo("points.xlsx", "Sheet1", 4, 100, 0.001, false, 0)
+    clusters, err := gokmeans.KmeansGo("points.xlsx", "Sheet1", 4, 100, 0.001, false, 6) // No K-means++ init
 	// Errors handling
     if err != nil {
 		// Logic of working with error
 	}
 }
 ```
+
+🔧 Contributions welcome! Report issues or submit PRs.
+📜 License: MIT
