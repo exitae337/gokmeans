@@ -19,10 +19,14 @@ go get github.com/exitae337/gokmeans
 
 First, you need to prepare an *excel table* with points and their **measurements** (coordinates)
 
-*For example*:
+*For example*
+
+**xlsx** table:
 
        A       B       C
-1  0.123   0.456   0.786 -> Point's coordinates (three measurements)
+1  0.123   0.456   0.786 -> Point's coordinates (three measurements for *example*)
+
+
 
 
 The main function of this module called **KmeansGo**:
