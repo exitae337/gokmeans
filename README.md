@@ -25,7 +25,7 @@ First, you need to prepare an *excel table* with points and their **measurements
 
 ```
        A       B       C
-1  0.123   0.456   0.786 -> Point's coordinates (three measurements for *example*)
+1  0.123   0.456   0.786 -> Point's coordinates (three measurements for example)
 ```
 
 
