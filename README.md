@@ -4,7 +4,7 @@ K-means library on *golang*.
 This module implements popular K-means variants of efficient clustering:
 
 - **K-means**: Classic Lloyds's algorythm partitioning data into k clustersby minimizing within-cluster variance
-- **K-maens++**: Smart centroid initialization for faster convergence and better accurancy
+- **K-means++**: Smart centroid initialization for faster convergence and better accurancy
 - **Mini-Batch K-means**: Optimized for large datasets using small random *batches*, trading precision for speed 
 
 *Designed for scalability and simplicity*
