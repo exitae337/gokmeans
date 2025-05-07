@@ -57,6 +57,38 @@ type Cluster struct {
 type Point []float64
 ```
 
+Main function have helper func for testing (creating .xlsx file with data set):
+
+- **numPoints** - number of points
+
+``` Go
+func createTestFile() {
+	f := excelize.NewFile()
+	defer f.Close()
+
+	sheetName := "Sheet1"
+
+	numPoints := 100000
+	for row := 2; row <= numPoints+1; row++ {
+		x := rand.Float64() * 1000
+		y := rand.Float64() * 1000
+		z := rand.Float64() * 1000
+
+		// Записываем в колонки A, B, C (X, Y, Z)
+		f.SetCellValue(sheetName, fmt.Sprintf("A%d", row), x)
+		f.SetCellValue(sheetName, fmt.Sprintf("B%d", row), y)
+		f.SetCellValue(sheetName, fmt.Sprintf("C%d", row), z)
+	}
+
+	// Сохраняем файл
+	if err := f.SaveAs("points.xlsx"); err != nil {
+		fmt.Println("Failed to save test file:", err)
+		return
+	}
+
+	fmt.Println("File created: points.xlsx")
+}
+```
 
 **Classic K-means:**
 
