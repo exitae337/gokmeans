@@ -1,3 +1,6 @@
+// Package gokmeans implements a convenient tool for clustering
+// Author: Chernyshev Maxim <exitae337@gmail.com>
+// License: Apache License, Version 2.0
 package kmeans
 
 import (
@@ -29,11 +32,11 @@ func KmeansGo(pathToFile, sheetName string, k, maxIterations int, threshold floa
 	if batchSize > 0 && batchSize < len(points) {
 		return miniBatchKmeans(points, k, batchSize, maxIterations, threshold)
 	}
-	return ClassicKMeans(points, k, maxIterations, kmeans_plus, threshold)
+	return classicKMeans(points, k, maxIterations, kmeans_plus, threshold)
 }
 
-// Classic K-means
-func ClassicKMeans(points []Point, k int, maxIterations int, kmeans_plus bool, threshold float64) ([]Cluster, error) {
+// Classic K-means. Return -> Cluster[], error
+func classicKMeans(points []Point, k int, maxIterations int, kmeans_plus bool, threshold float64) ([]Cluster, error) {
 	if k <= 0 || len(points) <= k {
 		return nil, fmt.Errorf("value of 'k' parameter is invalid: zero or bigger than points count -> k=%d", k)
 	}
@@ -97,57 +100,67 @@ func takePointsFromExel(pathToFile, sheetName string) ([]Point, error) {
 	return currentPoints, nil
 }
 
-// Mini-Batch K-means (with batches)
+// Mini-batch K-means (K-means++ init). Return -> Cluster[], error
 func miniBatchKmeans(points []Point, k int, batchSize int, maxIterations int, threshold float64) ([]Cluster, error) {
 	if k <= 0 || k >= len(points) {
 		return nil, fmt.Errorf("value of 'k' parameter is invalid: zero or bigger than points count -> k=%d", k)
 	}
-	randSeed := rand.NewSource(time.Now().UnixNano())
-	centroids := centroidsInitPP(points, k)
-	randForMiniBatch := rand.New(randSeed)
 
-	var clusters []Cluster
+	randSeed := rand.NewSource(time.Now().UnixNano())
+	randForMiniBatch := rand.New(randSeed)
+	centroids := centroidsInitPP(points, k)
+
+	clusterCounts := make([]int, k) // points count in clusters
+
 	for i := 0; i < maxIterations; i++ {
+
 		batch := make([]Point, batchSize)
 		perm := randForMiniBatch.Perm(len(points))[:batchSize]
 		for j, idx := range perm {
 			batch[j] = points[idx]
 		}
-		clusters = assignPoints(batch, centroids)
-		newCentroids := updateCentroidsWithMiniBatch(clusters, centroids, 1.0/(float64(i+1)))
+
+		clusters := assignPoints(batch, centroids) // batch points to clusters
+
+		newCentroids := make([]Point, len(centroids))
+		for j := range newCentroids {
+			newCentroids[j] = make(Point, len(centroids[j]))
+			copy(newCentroids[j], centroids[j])
+
+			if len(clusters[j].ClusterPoints) == 0 {
+				continue
+			}
+
+			// Middle
+			batchMean := make(Point, len(clusters[j].Centroid))
+			for _, p := range clusters[j].ClusterPoints {
+				for dim := range p {
+					batchMean[dim] += p[dim]
+				}
+			}
+			for dim := range batchMean {
+				batchMean[dim] /= float64(len(clusters[j].ClusterPoints))
+			}
+
+			n := float64(clusterCounts[j])               // before
+			m := float64(len(clusters[j].ClusterPoints)) // after
+			for dim := range newCentroids[j] {
+				newCentroids[j][dim] = (n*newCentroids[j][dim] + m*batchMean[dim]) / (n + m)
+			}
+
+			// Обновляем счетчик точек в кластере
+			clusterCounts[j] += len(clusters[j].ClusterPoints)
+		}
+
+		// 4. Проверяем сходимость
 		if !centroidsChanged(centroids, newCentroids, threshold) {
 			break
 		}
 		centroids = newCentroids
 	}
+
+	// Возвращаем финальные кластеры для всех точек
 	return assignPoints(points, centroids), nil
-}
-
-// Update for Mini-Batch
-func updateCentroidsWithMiniBatch(clusters []Cluster, oldCentroids []Point, learningRate float64) []Point {
-	newCentroids := make([]Point, len(clusters))
-	for i, cluster := range clusters {
-		newCentroids[i] = make(Point, len(cluster.Centroid))
-		copy(newCentroids[i], oldCentroids[i])
-		if len(cluster.ClusterPoints) == 0 {
-			continue
-		}
-		// Middle for mini-batch
-		batchMean := make(Point, len(cluster.Centroid))
-		for _, p := range cluster.ClusterPoints {
-			for j := range p {
-				batchMean[j] += p[j]
-			}
-		}
-		for j := range batchMean {
-			batchMean[j] /= float64(len(cluster.ClusterPoints))
-		}
-
-		for j := range newCentroids[i] {
-			newCentroids[i][j] = (1-learningRate)*newCentroids[i][j] + learningRate*batchMean[j]
-		}
-	}
-	return newCentroids
 }
 
 // Centroids Init -> random choice
@@ -163,7 +176,7 @@ func centroidsInit(points []Point, k int) []Point {
 	return centroids
 }
 
-// Centroids init PP
+// Centroids init PP -> Kmeans++ init
 func centroidsInitPP(points []Point, k int) []Point {
 	seedInit := rand.NewSource(time.Now().UnixNano())
 	randInit := rand.New(seedInit)
@@ -182,23 +195,29 @@ func centroidsInitPP(points []Point, k int) []Point {
 			minDist := math.MaxFloat64
 			for _, c := range centroids[:i] {
 				if c != nil {
+					// MinDist to centroids
 					dist := p.distanceBetween(c)
 					if dist < minDist {
 						minDist = dist
 					}
 				}
 			}
-			distances[j] = minDist * minDist
-			sum += distances[j]
+			distances[j] = minDist * minDist // D(x)^2
+			sum += distances[j]              // for probability choice
 		}
 
-		r := randInit.Float64() * sum
+		// Normalize distances into probabilities
+		probs := make([]float64, len(points))
 		cumSum := 0.0
-		selectedIdx := 0
-
 		for j, d := range distances {
-			cumSum += d
-			if cumSum >= r {
+			cumSum += d / sum
+			probs[j] = cumSum
+		}
+
+		r := randInit.Float64()
+		selectedIdx := 0
+		for j, prob := range probs {
+			if r <= prob {
 				selectedIdx = j
 				break
 			}
@@ -236,12 +255,12 @@ func assignPoints(points []Point, centroids []Point) []Cluster {
 	return clusters
 }
 
-// Update Centroids (Classic K-means)
+// Update Centroids (Classic or K-means++)
 func updateCenrtoids(clusters []Cluster) []Point {
 	newCentroids := make([]Point, len(clusters))
 	for i, cluster := range clusters {
 		if len(cluster.ClusterPoints) == 0 {
-			newCentroids[i] = make(Point, len(cluster.ClusterPoints))
+			newCentroids[i] = make(Point, len(cluster.Centroid))
 			copy(newCentroids[i], cluster.Centroid)
 			continue
 		}
@@ -259,7 +278,7 @@ func updateCenrtoids(clusters []Cluster) []Point {
 	return newCentroids
 }
 
-// Convergence check
+// Convergence check: > threshold
 func centroidsChanged(oldCentroids, newCentroids []Point, threshold float64) bool {
 	if len(oldCentroids) != len(newCentroids) {
 		return true
@@ -272,7 +291,7 @@ func centroidsChanged(oldCentroids, newCentroids []Point, threshold float64) boo
 	return false
 }
 
-// Euclidean distance
+// Helper func: Euclidean distance
 func (p Point) distanceBetween(other Point) float64 {
 	sum := 0.0
 	for i := range p {
