@@ -1,4 +1,4 @@
-# Gokmeans library
+# Gokmeans module
 K-means library on *golang*.
 
 This module implements popular K-means variants of efficient clustering:
@@ -46,7 +46,7 @@ gokmeans.KmeansGo("name.xlsx", "sheet_name", k, count_iter, threshold, bool_kmea
 
 The output of the algorithm is a slice of the formed clusters.
 
-**Cluster** and **Point** type:
+**Cluster** and **Point** struct type:
 
 ``` Go
 type Cluster struct {
@@ -91,7 +91,7 @@ func main() {
 **K-means++ initialization:**
 
 For K-means++ (only):
-- bool_kmeans_init: **False**
+- bool_kmeans_init: **True**
 - batch_size: **Zero or below**
 
 *Example:*
@@ -115,7 +115,7 @@ func main() {
 **Mini-batch initialization:**
 
 For Mini-batch (only):
-- bool_kmeans_init: **True**
+- bool_kmeans_init: **False**
 - batch_size: **0 <= size < points_count**
 
 *Example:*
@@ -136,7 +136,7 @@ func main() {
 }
 ```
 
-But you can **combine** initializations:
+But you can **combine** initializations (k-means++ & mini-batch):
 
 ```Go
 	clusters, err := gokmeans.KmeansGo("points.xlsx", "Sheet1", 4, 100, 0.001, true, 6) // K-means++ init && Mini-batch init
