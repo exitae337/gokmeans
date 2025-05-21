@@ -6,8 +6,7 @@ import (
 
 	"github.com/xuri/excelize/v2"
 
-	"github.com/exitae337/gokmeans/lib/kmeans"
-	gokmeans "github.com/exitae337/gokmeans/lib/kmeans"
+	kmeans "github.com/exitae337/gokmeans/lib/kmeans"
 )
 
 func main() {
@@ -18,7 +17,7 @@ func main() {
 // Classic K-means example
 func demoKmeans() {
 	moduleName := "GoKmeans: "
-	clusters, err := gokmeans.KmeansGo("points.xlsx", "Sheet1", 4, 100, 0.001, false, 0)
+	clusters, err := kmeans.KmeansGo("points.xlsx", "Sheet1", 4, 100, 0.001, false, 0)
 	if err != nil {
 		fmt.Println(moduleName, " : ", err)
 	}
@@ -34,7 +33,7 @@ func demoKmeans() {
 // Kmeans with kmeans++ init example
 func demoKmeansWithInitPlus() {
 	moduleName := "GoKmeans: "
-	clusters, err := gokmeans.KmeansGo("points.xlsx", "Sheet1", 8, 100, 0.001, true, 0)
+	clusters, err := kmeans.KmeansGo("points.xlsx", "Sheet1", 8, 100, 0.001, true, 0)
 	if err != nil {
 		fmt.Println(moduleName, " : ", err)
 	}
@@ -48,7 +47,7 @@ func demoKmeansWithInitPlus() {
 // Mini-batch K-means with k-means++ example
 func demoKmeansWithInitPlusAndBatches() {
 	moduleName := "GoKmeans: "
-	clusters, err := gokmeans.KmeansGo("points.xlsx", "Sheet1", 8, 100, 0.001, true, 100)
+	clusters, err := kmeans.KmeansGo("points.xlsx", "Sheet1", 8, 100, 0.001, true, 100)
 	if err != nil {
 		fmt.Println(moduleName, " : ", err)
 	}
