@@ -6,18 +6,19 @@ import (
 
 	"github.com/xuri/excelize/v2"
 
+	"github.com/exitae337/gokmeans/lib/kmeans"
 	gokmeans "github.com/exitae337/gokmeans/lib/kmeans"
 )
 
 func main() {
-	// createTestFile()
+	createTestFile()
 	demoKmeans()
 }
 
 // Classic K-means example
 func demoKmeans() {
 	moduleName := "GoKmeans: "
-	clusters, err := gokmeans.KmeansGo("points.xlsx", "Sheet1", 8, 100, 0.001, false, 0)
+	clusters, err := gokmeans.KmeansGo("points.xlsx", "Sheet1", 4, 100, 0.001, false, 0)
 	if err != nil {
 		fmt.Println(moduleName, " : ", err)
 	}
@@ -26,6 +27,8 @@ func demoKmeans() {
 		fmt.Printf("Centroid: %v\n", cluster.Centroid)
 		fmt.Printf("Points: %v\n\n", cluster.ClusterPoints)
 	}
+	fmt.Println(kmeans.DaviesBouldinIndex(clusters))
+	fmt.Println(kmeans.SilhouetteScore(clusters))
 }
 
 // Kmeans with kmeans++ init example
@@ -63,8 +66,8 @@ func createTestFile() {
 
 	sheetName := "Sheet1"
 
-	numPoints := 1000 // Number of points in data for clastering
-	for row := 2; row <= numPoints+1; row++ {
+	numPoints := 40 // Number of points in data for clastering
+	for row := 1; row <= numPoints+1; row++ {
 		x := rand.Float64() * 1000
 		y := rand.Float64() * 1000
 		z := rand.Float64() * 1000
