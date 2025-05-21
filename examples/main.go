@@ -60,6 +60,7 @@ func demoKmeansWithInitPlusAndBatches() {
 }
 
 // Creating test "Example File" .xslx for testing and working example
+
 func createTestFile() {
 	f := excelize.NewFile()
 	defer f.Close()
@@ -72,13 +73,11 @@ func createTestFile() {
 		y := rand.Float64() * 1000
 		z := rand.Float64() * 1000
 
-		// Записываем в колонки A, B, C (X, Y, Z)
 		f.SetCellValue(sheetName, fmt.Sprintf("A%d", row), x)
 		f.SetCellValue(sheetName, fmt.Sprintf("B%d", row), y)
 		f.SetCellValue(sheetName, fmt.Sprintf("C%d", row), z)
 	}
 
-	// Сохраняем файл
 	if err := f.SaveAs("points.xlsx"); err != nil {
 		fmt.Println("Failed to save test file:", err)
 		return
