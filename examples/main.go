@@ -7,6 +7,7 @@ import (
 	"github.com/xuri/excelize/v2"
 
 	kmeans "github.com/exitae337/gokmeans/lib/kmeans"
+	metric "github.com/exitae337/gokmeans/lib/metrics"
 )
 
 func main() {
@@ -18,7 +19,7 @@ func main() {
 // Classic K-means example
 func demoKmeans() {
 	moduleName := "GoKmeans: "
-	clusters, err := kmeans.KmeansGo("clustering_datasets.xlsx", "Moons", 3, 10000, 0.0001, false, 0)
+	clusters, err := kmeans.KmeansGo("clustering_datasets.xlsx", "Blobs", 3, 10000, 0.0001, false, 0)
 	if err != nil {
 		fmt.Println(moduleName, " : ", err)
 	}
@@ -26,8 +27,8 @@ func demoKmeans() {
 		fmt.Printf("Cluster %d:\n", i+1)
 		fmt.Printf("Centroid: %v\n", cluster.Centroid)
 	}
-	fmt.Println(kmeans.DaviesBouldinIndex(clusters))
-	fmt.Println(kmeans.SilhouetteScore(clusters))
+	fmt.Println(metric.DaviesBouldinIndex(clusters))
+	fmt.Println(metric.SilhouetteScore(clusters))
 }
 
 // Kmeans with kmeans++ init example
@@ -41,14 +42,14 @@ func demoKmeansWithInitPlus() {
 		fmt.Printf("Cluster %d:\n", i+1)
 		fmt.Printf("Centroid: %v\n", cluster.Centroid)
 	}
-	fmt.Println(kmeans.DaviesBouldinIndex(clusters))
-	fmt.Println(kmeans.SilhouetteScore(clusters))
+	fmt.Println(metric.DaviesBouldinIndex(clusters))
+	fmt.Println(metric.SilhouetteScore(clusters))
 }
 
 // Mini-batch K-means with k-means++ example
 func demoKmeansWithInitPlusAndBatches() {
 	moduleName := "GoKmeans: "
-	clusters, err := kmeans.KmeansGo("clustering_datasets.xlsx", "Circles", 3, 10000, 0.0001, true, 250)
+	clusters, err := kmeans.KmeansGo("clustering_datasets.xlsx", "Blobs", 3, 10000, 0.0001, true, 250)
 	if err != nil {
 		fmt.Println(moduleName, " : ", err)
 	}
@@ -56,8 +57,8 @@ func demoKmeansWithInitPlusAndBatches() {
 		fmt.Printf("Cluster %d:\n", i+1)
 		fmt.Printf("Centroid: %v\n", cluster.Centroid)
 	}
-	fmt.Println(kmeans.DaviesBouldinIndex(clusters))
-	fmt.Println(kmeans.SilhouetteScore(clusters))
+	fmt.Println(metric.DaviesBouldinIndex(clusters))
+	fmt.Println(metric.SilhouetteScore(clusters))
 }
 
 // Creating test "Example File" .xslx for testing and working example. Full random points.
