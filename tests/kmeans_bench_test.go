@@ -25,7 +25,7 @@ func benchmarkKmeansGo(b *testing.B, k int, max_iterations int, threshold float6
 	// Засекаем общее время выполнения всех итераций
 	startTime := time.Now()
 	for i := 0; i < b.N; i++ {
-		_, _ = kmeans.KmeansGo("../examples/points.xlsx", "Sheet1", k, max_iterations, threshold, kmeansPP, batch_size)
+		_, _ = kmeans.KmeansGo("../examples/clustering_datasets.xlsx", "Blobs", k, max_iterations, threshold, kmeansPP, batch_size)
 	}
 	total := time.Since(startTime)
 	b.ReportMetric(float64(total.Milliseconds())/float64(b.N), "ms/op(total)")
