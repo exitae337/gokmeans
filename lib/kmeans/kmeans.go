@@ -113,7 +113,7 @@ func miniBatchKmeans(points []Point, k int, batchSize int, maxIterations int, th
 	randForMiniBatch := rand.New(randSeed)
 	centroids := centroidsInitPP(points, k)
 
-	clusterCounts := make([]int, k) // points count in clusters
+	clusterCounts := make([]int, k)
 
 	for i := 0; i < maxIterations; i++ {
 
@@ -123,7 +123,7 @@ func miniBatchKmeans(points []Point, k int, batchSize int, maxIterations int, th
 			batch[j] = points[idx]
 		}
 
-		clusters := assignPoints(batch, centroids) // batch points to clusters
+		clusters := assignPoints(batch, centroids)
 
 		newCentroids := make([]Point, len(centroids))
 		for j := range newCentroids {
@@ -134,7 +134,6 @@ func miniBatchKmeans(points []Point, k int, batchSize int, maxIterations int, th
 				continue
 			}
 
-			// Middle
 			batchMean := make(Point, len(clusters[j].Centroid))
 			for _, p := range clusters[j].ClusterPoints {
 				for dim := range p {
@@ -145,24 +144,21 @@ func miniBatchKmeans(points []Point, k int, batchSize int, maxIterations int, th
 				batchMean[dim] /= float64(len(clusters[j].ClusterPoints))
 			}
 
-			n := float64(clusterCounts[j])               // before
-			m := float64(len(clusters[j].ClusterPoints)) // after
+			n := float64(clusterCounts[j])
+			m := float64(len(clusters[j].ClusterPoints))
 			for dim := range newCentroids[j] {
 				newCentroids[j][dim] = (n*newCentroids[j][dim] + m*batchMean[dim]) / (n + m)
 			}
 
-			// Обновляем счетчик точек в кластере
 			clusterCounts[j] += len(clusters[j].ClusterPoints)
 		}
 
-		// 4. Проверяем сходимость
 		if !centroidsChanged(centroids, newCentroids, threshold) {
 			break
 		}
 		centroids = newCentroids
 	}
 
-	// Возвращаем финальные кластеры для всех точек
 	return assignPoints(points, centroids), nil
 }
 
@@ -198,15 +194,14 @@ func centroidsInitPP(points []Point, k int) []Point {
 			minDist := math.MaxFloat64
 			for _, c := range centroids[:i] {
 				if c != nil {
-					// MinDist to centroids
 					dist := p.DistanceBetween(c)
 					if dist < minDist {
 						minDist = dist
 					}
 				}
 			}
-			distances[j] = minDist * minDist // D(x)^2
-			sum += distances[j]              // for probability choice
+			distances[j] = minDist * minDist
+			sum += distances[j]
 		}
 
 		// Normalize distances into probabilities
