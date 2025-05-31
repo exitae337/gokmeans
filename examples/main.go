@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 
 	"github.com/xuri/excelize/v2"
@@ -11,15 +12,15 @@ import (
 )
 
 func main() {
+	fmt.Println("K-means module: Exitae337")
 	demoKmeans()
-	demoKmeansWithInitPlus()
-	demoKmeansWithInitPlusAndBatches()
 }
 
 // Classic K-means example
 func demoKmeans() {
 	moduleName := "GoKmeans: "
-	clusters, err := kmeans.KmeansGo("clustering_datasets.xlsx", "Blobs", 3, 10000, 0.0001, false, 0)
+	// kmeans.KmeansGo("clustering_datasets.xlsx", "Blobs", 3, 10000, 0.0001, true, 250) - for mini-batch
+	clusters, err := kmeans.KmeansGo("clustering_datasets.xlsx", "Moons", 3, 10000, 0.0001, true, 0)
 	if err != nil {
 		fmt.Println(moduleName, " : ", err)
 	}
@@ -27,38 +28,20 @@ func demoKmeans() {
 		fmt.Printf("Cluster %d:\n", i+1)
 		fmt.Printf("Centroid: %v\n", cluster.Centroid)
 	}
-	fmt.Println(metric.DaviesBouldinIndex(clusters))
-	fmt.Println(metric.SilhouetteScore(clusters))
-}
+	fmt.Println("DBI", metric.DaviesBouldinIndex(clusters))
+	fmt.Println("Sihoulete:", metric.SilhouetteScore(clusters))
 
-// Kmeans with kmeans++ init example
-func demoKmeansWithInitPlus() {
-	moduleName := "GoKmeans: "
-	clusters, err := kmeans.KmeansGo("clustering_datasets.xlsx", "Blobs", 3, 10000, 0.0001, true, 0)
+	// ARI
+	points, err := kmeans.TakePointsFromExel("clustering_datasets.xlsx", "Blobs")
 	if err != nil {
-		fmt.Println(moduleName, " : ", err)
+		log.Panic("Failed to PARSE th file with DATA")
 	}
-	for i, cluster := range clusters {
-		fmt.Printf("Cluster %d:\n", i+1)
-		fmt.Printf("Centroid: %v\n", cluster.Centroid)
-	}
-	fmt.Println(metric.DaviesBouldinIndex(clusters))
-	fmt.Println(metric.SilhouetteScore(clusters))
-}
-
-// Mini-batch K-means with k-means++ example
-func demoKmeansWithInitPlusAndBatches() {
-	moduleName := "GoKmeans: "
-	clusters, err := kmeans.KmeansGo("clustering_datasets.xlsx", "Blobs", 3, 10000, 0.0001, true, 250)
+	y_pred := metric.GetPredictedLabels(clusters, points)
+	y_true, err := metric.ReadTrueLabels("clustering_datasets.xlsx", "Blobs")
 	if err != nil {
-		fmt.Println(moduleName, " : ", err)
+		log.Panic("Failed to PARSE th file with DATA")
 	}
-	for i, cluster := range clusters {
-		fmt.Printf("Cluster %d:\n", i+1)
-		fmt.Printf("Centroid: %v\n", cluster.Centroid)
-	}
-	fmt.Println(metric.DaviesBouldinIndex(clusters))
-	fmt.Println(metric.SilhouetteScore(clusters))
+	fmt.Println("ARI", metric.AdjustedRandIndex(y_true, y_pred))
 }
 
 // Creating test "Example File" .xslx for testing and working example. Full random points.

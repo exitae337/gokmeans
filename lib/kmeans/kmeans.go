@@ -24,7 +24,7 @@ type Cluster struct {
 
 // Main function. Return -> []Cluster, error
 func KmeansGo(pathToFile, sheetName string, k, maxIterations int, threshold float64, kmeans_plus bool, batchSize int) ([]Cluster, error) {
-	points, err := takePointsFromExel(pathToFile, sheetName)
+	points, err := TakePointsFromExel(pathToFile, sheetName)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func classicKMeans(points []Point, k int, maxIterations int, kmeans_plus bool, t
 }
 
 // Take Points From exel file
-func takePointsFromExel(pathToFile, sheetName string) ([]Point, error) {
+func TakePointsFromExel(pathToFile, sheetName string) ([]Point, error) {
 	// Working with Excel file
 	// Open file
 	f, err := excelize.OpenFile(pathToFile)
@@ -87,7 +87,10 @@ func takePointsFromExel(pathToFile, sheetName string) ([]Point, error) {
 	currentPoints := []Point{}
 	for _, row := range rows {
 		currentPoint := Point{}
-		for _, colCell := range row {
+		for i, colCell := range row {
+			if i == len(row)-1 {
+				break
+			}
 			// Convert to float64
 			floatValue, err := strconv.ParseFloat(colCell, 64)
 			if err != nil {

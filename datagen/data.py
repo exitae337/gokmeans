@@ -18,6 +18,7 @@ plt.figure(figsize=(15, 5))
 
 for i, (name, (data, labels)) in enumerate(datasets.items(), 1):
     df = pd.DataFrame(data, columns=["X", "Y"])
+    df["Label"] = labels
     
     with pd.ExcelWriter(output_file, engine='openpyxl', mode='a' if os.path.exists(output_file) else 'w') as writer:
         df.to_excel(writer, sheet_name=name, index=False, header=False)

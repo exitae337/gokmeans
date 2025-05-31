@@ -1,12 +1,15 @@
 package metric
 
 import (
+	"fmt"
 	"math"
+	"strconv"
 
 	"github.com/exitae337/gokmeans/lib/kmeans"
+	"github.com/xuri/excelize/v2"
 )
 
-// Metrics: DBI & Sihoulette Score
+// Metrics: DBI & Sihoulette Score & ARI
 
 // DaviesBouldinIndex
 func DaviesBouldinIndex(clusters []kmeans.Cluster) float64 {
@@ -153,4 +156,95 @@ func minInterClusterDistance(points []kmeans.Point, labels []int, pointIdx int, 
 		return 0.0
 	}
 	return minB
+}
+
+// ARI metric
+
+// ARI
+func AdjustedRandIndex(yTrue, yPred []int) float64 {
+	n := len(yTrue)
+	if n != len(yPred) {
+		panic("Lengths of yTrue and yPred must match")
+	}
+
+	contingency := make(map[[2]int]int)
+	for i := 0; i < n; i++ {
+		key := [2]int{yTrue[i], yPred[i]}
+		contingency[key]++
+	}
+
+	aSum := make(map[int]int)
+	bSum := make(map[int]int)
+	for key, count := range contingency {
+		aSum[key[0]] += count
+		bSum[key[1]] += count
+	}
+
+	index := 0.0
+	sumA := 0.0
+	sumB := 0.0
+	for _, count := range aSum {
+		sumA += float64(count * (count - 1) / 2)
+	}
+	for _, count := range bSum {
+		sumB += float64(count * (count - 1) / 2)
+	}
+	for _, count := range contingency {
+		index += float64(count * (count - 1) / 2)
+	}
+
+	expectedIndex := sumA * sumB / float64(n*(n-1)/2)
+	maxIndex := 0.5 * (sumA + sumB)
+	ari := (index - expectedIndex) / (maxIndex - expectedIndex)
+	return ari
+}
+
+// Predictsed labels from algorythm
+func GetPredictedLabels(clusters []kmeans.Cluster, points []kmeans.Point) []int {
+	yPred := make([]int, len(points))
+	for i, p := range points {
+		closestCluster := 0
+		minDist := math.Inf(1)
+		for j, c := range clusters {
+			dist := p.DistanceBetween(c.Centroid)
+			if dist < minDist {
+				minDist = dist
+				closestCluster = j
+			}
+		}
+		yPred[i] = closestCluster
+	}
+	return yPred
+}
+
+// True labels from file
+func ReadTrueLabels(pathToFile, sheetName string) ([]int, error) {
+	f, err := excelize.OpenFile(pathToFile)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	rows, err := f.GetRows(sheetName)
+	if err != nil {
+		return nil, err
+	}
+
+	labels := make([]int, 0, len(rows))
+	for _, row := range rows {
+		if len(row) == 0 {
+			continue // Пропускаем пустые строки
+		}
+
+		// Берём последний столбец (метки)
+		lastCol := row[len(row)-1]
+		label, err := strconv.Atoi(lastCol) // Если метка целочисленная
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse label '%s': %v", lastCol, err)
+		}
+
+		labels = append(labels, label)
+	}
+
+	return labels, nil
 }
