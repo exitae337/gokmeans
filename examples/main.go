@@ -3,9 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"math/rand"
-
-	"github.com/xuri/excelize/v2"
 
 	kmeans "github.com/exitae337/gokmeans/lib/kmeans"
 	metric "github.com/exitae337/gokmeans/lib/metrics"
@@ -19,7 +16,7 @@ func main() {
 // Classic K-means example
 func demoKmeans() {
 	moduleName := "GoKmeans: "
-	clusters, err := kmeans.KmeansGo("clustering_datasets.xlsx", "Blobs", 3, 10000, 0.0001, true, 500)
+	clusters, err := kmeans.KmeansGo("clustering_datasets.xlsx", "Circles", 2, 10000, 0.0001, true, 500)
 	if err != nil {
 		fmt.Println(moduleName, " : ", err)
 	}
@@ -31,40 +28,14 @@ func demoKmeans() {
 	fmt.Println("Sihoulete:", metric.SilhouetteScore(clusters))
 
 	// ARI
-	points, err := kmeans.TakePointsFromExel("clustering_datasets.xlsx", "Blobs")
+	points, err := kmeans.TakePointsFromExel("clustering_datasets.xlsx", "Circles")
 	if err != nil {
 		log.Panic("Failed to PARSE th file with DATA")
 	}
 	y_pred := metric.GetPredictedLabels(clusters, points)
-	y_true, err := metric.ReadTrueLabels("clustering_datasets.xlsx", "Blobs")
+	y_true, err := metric.ReadTrueLabels("clustering_datasets.xlsx", "Circles")
 	if err != nil {
 		log.Panic("Failed to PARSE th file with DATA")
 	}
 	fmt.Println("ARI", metric.AdjustedRandIndex(y_true, y_pred))
-}
-
-// Creating test "Example File" .xslx for testing and working example. Full random points.
-func createTestFile() {
-	f := excelize.NewFile()
-	defer f.Close()
-
-	sheetName := "Sheet1"
-
-	numPoints := 400 // Number of points in data for clastering
-	for row := 1; row <= numPoints+1; row++ {
-		x := rand.Float64() * 1000
-		y := rand.Float64() * 1000
-		z := rand.Float64() * 1000
-
-		f.SetCellValue(sheetName, fmt.Sprintf("A%d", row), x)
-		f.SetCellValue(sheetName, fmt.Sprintf("B%d", row), y)
-		f.SetCellValue(sheetName, fmt.Sprintf("C%d", row), z)
-	}
-
-	if err := f.SaveAs("points.xlsx"); err != nil {
-		fmt.Println("Failed to save test file:", err)
-		return
-	}
-
-	fmt.Println("File created: points.xlsx")
 }

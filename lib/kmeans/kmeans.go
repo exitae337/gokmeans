@@ -28,7 +28,6 @@ func KmeansGo(pathToFile, sheetName string, k, maxIterations int, threshold floa
 	if err != nil {
 		return nil, err
 	}
-	// Algorythm
 	if batchSize > 0 && batchSize < len(points) {
 		return miniBatchKmeans(points, k, batchSize, maxIterations, threshold)
 	}
@@ -43,7 +42,6 @@ func classicKMeans(points []Point, k int, maxIterations int, kmeans_plus bool, t
 
 	var centroids []Point
 
-	// K-maens++ or K-means
 	if kmeans_plus {
 		centroids = centroidsInitPP(points, k)
 	} else {
@@ -67,19 +65,15 @@ func classicKMeans(points []Point, k int, maxIterations int, kmeans_plus bool, t
 
 // Take Points From exel file
 func TakePointsFromExel(pathToFile, sheetName string) ([]Point, error) {
-	// Working with Excel file
-	// Open file
 	f, err := excelize.OpenFile(pathToFile)
 	if err != nil {
 		return nil, err
 	}
-	// Close file
 	defer func() {
 		if err := f.Close(); err != nil {
 			fmt.Println(err)
 		}
 	}()
-	// Reading and working with rows (Current Points array from exel file)
 	rows, err := f.GetRows(sheetName)
 	if err != nil {
 		return nil, err
@@ -91,7 +85,6 @@ func TakePointsFromExel(pathToFile, sheetName string) ([]Point, error) {
 			if i == len(row)-1 {
 				break
 			}
-			// Convert to float64
 			floatValue, err := strconv.ParseFloat(colCell, 64)
 			if err != nil {
 				return nil, err
@@ -108,23 +101,18 @@ func miniBatchKmeans(points []Point, k int, batchSize int, maxIterations int, th
 		return nil, fmt.Errorf("invalid k value: %d", k)
 	}
 
-	// Инициализация
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-	centroids := make([]Point, k)
-	for i := range centroids {
-		centroids[i] = points[rnd.Intn(len(points))].Copy()
-	}
+	centroids := centroidsInitPP(points, k)
 
 	clusterCounts := make([]int, k)
 	sums := make([]Point, k)
 	counts := make([]int, k)
 
-	for iter := 0; iter < maxIterations; iter++ {
-		// 1. Выбор случайного батча
+	for i := 0; i < maxIterations; i++ {
+
 		start := rnd.Intn(len(points) - batchSize)
 		batch := points[start : start+batchSize]
 
-		// 2. Сброс аккумуляторов
 		for i := range sums {
 			if sums[i] == nil {
 				sums[i] = make(Point, len(centroids[i]))
@@ -136,12 +124,10 @@ func miniBatchKmeans(points []Point, k int, batchSize int, maxIterations int, th
 			counts[i] = 0
 		}
 
-		// 3. Назначение точек ближайшим центроидам
 		for _, p := range batch {
 			minDist := math.MaxFloat64
 			closest := 0
 
-			// Находим ближайший центроид
 			for i, c := range centroids {
 				dist := p.DistanceBetween(c)
 				if dist < minDist {
@@ -150,14 +136,12 @@ func miniBatchKmeans(points []Point, k int, batchSize int, maxIterations int, th
 				}
 			}
 
-			// Аккумулируем суммы
 			for dim := range p {
 				sums[closest][dim] += p[dim]
 			}
 			counts[closest]++
 		}
 
-		// 4. Обновление центроидов
 		changed := false
 		for j := range centroids {
 			if counts[j] == 0 {
@@ -171,7 +155,6 @@ func miniBatchKmeans(points []Point, k int, batchSize int, maxIterations int, th
 				newCentroid[dim] = (total*centroids[j][dim] + float64(counts[j])*batchMean) / (total + float64(counts[j]))
 			}
 
-			// Проверка изменения центроида
 			if centroids[j].DistanceBetween(newCentroid) > threshold {
 				changed = true
 			}
@@ -184,7 +167,6 @@ func miniBatchKmeans(points []Point, k int, batchSize int, maxIterations int, th
 		}
 	}
 
-	// Формирование итоговых кластеров
 	clusters := make([]Cluster, k)
 	for i := range clusters {
 		clusters[i].Centroid = centroids[i]
@@ -249,7 +231,6 @@ func centroidsInitPP(points []Point, k int) []Point {
 			sum += distances[j]
 		}
 
-		// Normalize distances into probabilities
 		probs := make([]float64, len(points))
 		cumSum := 0.0
 		for j, d := range distances {

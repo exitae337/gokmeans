@@ -26,19 +26,16 @@ func benchmarkKmeans(b *testing.B, kmeansPP bool, batchSize int) {
 	maxIter := 1000
 	threshold := 0.001
 
-	// Предварительный "прогрев" (не учитывается в результатах)
 	_, _ = kmeans.KmeansGo(path, sheet, k, maxIter, threshold, kmeansPP, batchSize)
 
 	b.ResetTimer()
 
-	// Замер общего времени выполнения всех итераций
 	start := time.Now()
 
 	for i := 0; i < b.N; i++ {
 		_, _ = kmeans.KmeansGo(path, sheet, k, maxIter, threshold, kmeansPP, batchSize)
 	}
 
-	// Добавляем кастомные метрики
 	elapsed := time.Since(start)
 	b.ReportMetric(float64(elapsed.Nanoseconds())/float64(b.N), "ns/op(total)")
 	b.ReportMetric(float64(elapsed.Seconds())/float64(b.N), "s/op")

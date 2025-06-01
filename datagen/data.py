@@ -6,7 +6,7 @@ import os
 n_samples = 50000
 random_state = 42
 output_file = "clustering_datasets.xlsx"
-plot_file = "data_visualization.png"
+plot_file = "python_data_visualization.png"
 
 datasets = {
     "Blobs": make_blobs(n_samples=n_samples, centers=3, random_state=random_state),

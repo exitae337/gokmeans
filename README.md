@@ -27,7 +27,7 @@ First, you need to prepare an *excel table* with points and their **measurements
        A       B       C
 1  0.123   0.456   0.786 -> Point's coordinates (three measurements for example)
 ```
-
+The last column can be used to add the actual data metrics (for ARI evaluation if needed)
 
 
 The main function of this module called **KmeansGo**:
@@ -57,30 +57,29 @@ type Cluster struct {
 type Point []float64
 ```
 
-Main function have helper func for testing (creating .xlsx file with data set):
+Datagen package have a helper func for testing (creating .xlsx file with data set):
 
 - **numPoints** - number of points
 
 ``` Go
-func createTestFile() {
+// Creating test "Example File" .xslx for testing and working example. Full random points.
+func CreateTestFile() {
 	f := excelize.NewFile()
 	defer f.Close()
 
 	sheetName := "Sheet1"
 
-	numPoints := 100000
-	for row := 2; row <= numPoints+1; row++ {
+	numPoints := 400 // Number of points in data for clastering
+	for row := 1; row <= numPoints+1; row++ {
 		x := rand.Float64() * 1000
 		y := rand.Float64() * 1000
 		z := rand.Float64() * 1000
 
-		// Записываем в колонки A, B, C (X, Y, Z)
 		f.SetCellValue(sheetName, fmt.Sprintf("A%d", row), x)
 		f.SetCellValue(sheetName, fmt.Sprintf("B%d", row), y)
 		f.SetCellValue(sheetName, fmt.Sprintf("C%d", row), z)
 	}
 
-	// Сохраняем файл
 	if err := f.SaveAs("points.xlsx"); err != nil {
 		fmt.Println("Failed to save test file:", err)
 		return
@@ -106,17 +105,12 @@ import (
 
 func main() {
     // Using
-    clusters, err := gokmeans.KmeansGo("points.xlsx", "Sheet1", 4, 100, 0.001, false, 0)
+    clusters, err := gokmeans.KmeansGo("points.xlsx", "Sheet1", 3, 10000, 0.0001, false, 0)
 	// Errors handling
     if err != nil {
 		// Logic of working with error
 	}
-	// View
-	for i, cluster := range clusters {
-		fmt.Printf("Cluster %d:\n", i+1)
-		fmt.Printf("Centroid: %v\n", cluster.Centroid) // Centroid
-		fmt.Printf("Points: %v\n\n", cluster.ClusterPoints) // Points of Cluster
-	}
+	// ...
 }
 ```
 
@@ -136,11 +130,12 @@ import (
 
 func main() {
     // Using
-    clusters, err := gokmeans.KmeansGo("points.xlsx", "Sheet1", 4, 100, 0.001, true, 0) // Mini-batch size = 0
+    clusters, err := gokmeans.KmeansGo("points.xlsx", "Sheet1", 3, 10000, 0.0001, true, 0) // Mini-batch size = 0
 	// Errors handling
     if err != nil {
 		// Logic of working with error
 	}
+	// ...
 }
 ```
 
@@ -160,23 +155,107 @@ import (
 
 func main() {
     // Using
-    clusters, err := gokmeans.KmeansGo("points.xlsx", "Sheet1", 4, 100, 0.001, false, 6) // No K-means++ init
+    clusters, err := gokmeans.KmeansGo("points.xlsx", "Sheet1", 3, 10000, 0.0001, true, 100) // K-means++ init
 	// Errors handling
     if err != nil {
 		// Logic of working with error
 	}
+	// ...
 }
 ```
 
-But you can **combine** initializations (k-means++ & mini-batch):
+Metrics for assessing the quality of the clustering performed were also implemented (metrics package):
 
-```Go
-	clusters, err := gokmeans.KmeansGo("points.xlsx", "Sheet1", 4, 100, 0.001, true, 6) // K-means++ init && Mini-batch init
-	// Errors handling
-    if err != nil {
-		// Logic of working with error
+**DBI** - Davies Bouldin Index
+**Sihoulette score**
+**ARI** - Adjusted Rand Index (if you have true labels)
+
+**DBI using:**
+
+*Example:*
+
+``` Go
+// Importing
+import (
+	gokmeans "github.com/exitae337/gokmeans/lib/kmeans"
+)
+
+func main() {
+    clusters, err := kmeans.KmeansGo("clustering_datasets.xlsx", "Circles", 2, 10000, 0.0001, true, 500)
+	if err != nil {
+		fmt.Println(moduleName, " : ", err)
 	}
+	for i, cluster := range clusters {
+		fmt.Printf("Cluster %d:\n", i+1)
+		fmt.Printf("Centroid: %v\n", cluster.Centroid)
+	}
+	fmt.Println("DBI", metric.DaviesBouldinIndex(clusters)) // DBI METRIC
+}
 ```
+
+**Sihoulette score using:**
+
+*Example:*
+
+``` Go
+// Importing
+import (
+	gokmeans "github.com/exitae337/gokmeans/lib/kmeans"
+)
+
+func main() {
+    clusters, err := kmeans.KmeansGo("clustering_datasets.xlsx", "Circles", 2, 10000, 0.0001, true, 500)
+	if err != nil {
+		fmt.Println(moduleName, " : ", err)
+	}
+	for i, cluster := range clusters {
+		fmt.Printf("Cluster %d:\n", i+1)
+		fmt.Printf("Centroid: %v\n", cluster.Centroid)
+	}
+	fmt.Println("Sihoulete:", metric.SilhouetteScore(clusters)) // Sihoulette score METRIC
+}
+```
+
+**Adjusted Rand Index using:**
+
+*Example:*
+
+``` Go
+// Importing
+import (
+	gokmeans "github.com/exitae337/gokmeans/lib/kmeans"
+)
+
+func main() {
+    clusters, err := kmeans.KmeansGo("clustering_datasets.xlsx", "Circles", 2, 10000, 0.0001, true, 500)
+	if err != nil {
+		fmt.Println(moduleName, " : ", err)
+	}
+	for i, cluster := range clusters {
+		fmt.Printf("Cluster %d:\n", i+1)
+		fmt.Printf("Centroid: %v\n", cluster.Centroid)
+	}
+	// POINTS FROM .xslx
+	points, err := kmeans.TakePointsFromExel("clustering_datasets.xlsx", "Circles")
+	if err != nil {
+		log.Panic("Failed to PARSE th file with DATA")
+	}
+	// PREDICTED LABELS
+	y_pred := metric.GetPredictedLabels(clusters, points)
+	// TRUE LABELS
+	y_true, err := metric.ReadTrueLabels("clustering_datasets.xlsx", "Circles")
+	if err != nil {
+		log.Panic("Failed to PARSE th file with DATA")
+	}
+	fmt.Println("ARI", metric.AdjustedRandIndex(y_true, y_pred)) // ARI INDEX
+}
+```
+
+There is also an example of using the module and using clustering quality assessment metrics in the **main.go** file in the **examples** folder.
+
+There you can also find prepared data for testing the algorithm!
+
+Also in the **test** folder there is a benchmark test for checking the speed of execution of clustering algorithms and other parameters.
 
 🔧 Contributions welcome! Report issues or submit PRs.
 📜 License: Apache License, Version 2.0
