@@ -103,63 +103,108 @@ func TakePointsFromExel(pathToFile, sheetName string) ([]Point, error) {
 	return currentPoints, nil
 }
 
-// Mini-batch K-means (K-means++ init). Return -> Cluster[], error
 func miniBatchKmeans(points []Point, k int, batchSize int, maxIterations int, threshold float64) ([]Cluster, error) {
 	if k <= 0 || k >= len(points) {
-		return nil, fmt.Errorf("value of 'k' parameter is invalid: zero or bigger than points count -> k=%d", k)
+		return nil, fmt.Errorf("invalid k value: %d", k)
 	}
 
-	randSeed := rand.NewSource(time.Now().UnixNano())
-	randForMiniBatch := rand.New(randSeed)
-	centroids := centroidsInitPP(points, k)
+	// Инициализация
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	centroids := make([]Point, k)
+	for i := range centroids {
+		centroids[i] = points[rnd.Intn(len(points))].Copy()
+	}
 
 	clusterCounts := make([]int, k)
+	sums := make([]Point, k)
+	counts := make([]int, k)
 
-	for i := 0; i < maxIterations; i++ {
+	for iter := 0; iter < maxIterations; iter++ {
+		// 1. Выбор случайного батча
+		start := rnd.Intn(len(points) - batchSize)
+		batch := points[start : start+batchSize]
 
-		batch := make([]Point, batchSize)
-		perm := randForMiniBatch.Perm(len(points))[:batchSize]
-		for j, idx := range perm {
-			batch[j] = points[idx]
+		// 2. Сброс аккумуляторов
+		for i := range sums {
+			if sums[i] == nil {
+				sums[i] = make(Point, len(centroids[i]))
+			} else {
+				for j := range sums[i] {
+					sums[i][j] = 0
+				}
+			}
+			counts[i] = 0
 		}
 
-		clusters := assignPoints(batch, centroids)
+		// 3. Назначение точек ближайшим центроидам
+		for _, p := range batch {
+			minDist := math.MaxFloat64
+			closest := 0
 
-		newCentroids := make([]Point, len(centroids))
-		for j := range newCentroids {
-			newCentroids[j] = make(Point, len(centroids[j]))
-			copy(newCentroids[j], centroids[j])
+			// Находим ближайший центроид
+			for i, c := range centroids {
+				dist := p.DistanceBetween(c)
+				if dist < minDist {
+					minDist = dist
+					closest = i
+				}
+			}
 
-			if len(clusters[j].ClusterPoints) == 0 {
+			// Аккумулируем суммы
+			for dim := range p {
+				sums[closest][dim] += p[dim]
+			}
+			counts[closest]++
+		}
+
+		// 4. Обновление центроидов
+		changed := false
+		for j := range centroids {
+			if counts[j] == 0 {
 				continue
 			}
 
-			batchMean := make(Point, len(clusters[j].Centroid))
-			for _, p := range clusters[j].ClusterPoints {
-				for dim := range p {
-					batchMean[dim] += p[dim]
-				}
-			}
-			for dim := range batchMean {
-				batchMean[dim] /= float64(len(clusters[j].ClusterPoints))
+			newCentroid := make(Point, len(centroids[j]))
+			for dim := range newCentroid {
+				batchMean := sums[j][dim] / float64(counts[j])
+				total := float64(clusterCounts[j])
+				newCentroid[dim] = (total*centroids[j][dim] + float64(counts[j])*batchMean) / (total + float64(counts[j]))
 			}
 
-			n := float64(clusterCounts[j])
-			m := float64(len(clusters[j].ClusterPoints))
-			for dim := range newCentroids[j] {
-				newCentroids[j][dim] = (n*newCentroids[j][dim] + m*batchMean[dim]) / (n + m)
+			// Проверка изменения центроида
+			if centroids[j].DistanceBetween(newCentroid) > threshold {
+				changed = true
 			}
-
-			clusterCounts[j] += len(clusters[j].ClusterPoints)
+			centroids[j] = newCentroid
+			clusterCounts[j] += counts[j]
 		}
 
-		if !centroidsChanged(centroids, newCentroids, threshold) {
+		if !changed {
 			break
 		}
-		centroids = newCentroids
 	}
 
-	return assignPoints(points, centroids), nil
+	// Формирование итоговых кластеров
+	clusters := make([]Cluster, k)
+	for i := range clusters {
+		clusters[i].Centroid = centroids[i]
+		clusters[i].ClusterPoints = make([]Point, 0)
+	}
+
+	for _, p := range points {
+		minDist := math.MaxFloat64
+		closest := 0
+		for i, c := range centroids {
+			dist := p.DistanceBetween(c)
+			if dist < minDist {
+				minDist = dist
+				closest = i
+			}
+		}
+		clusters[closest].ClusterPoints = append(clusters[closest].ClusterPoints, p)
+	}
+
+	return clusters, nil
 }
 
 // Centroids Init -> random choice
@@ -297,4 +342,11 @@ func (p Point) DistanceBetween(other Point) float64 {
 		sum += diff * diff
 	}
 	return math.Sqrt(sum)
+}
+
+// Copy point for speed
+func (p Point) Copy() Point {
+	newPoint := make(Point, len(p))
+	copy(newPoint, p)
+	return newPoint
 }

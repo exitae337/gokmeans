@@ -199,7 +199,7 @@ func AdjustedRandIndex(yTrue, yPred []int) float64 {
 	return ari
 }
 
-// Predictsed labels from algorythm
+// Predicted labels from algorythm
 func GetPredictedLabels(clusters []kmeans.Cluster, points []kmeans.Point) []int {
 	yPred := make([]int, len(points))
 	for i, p := range points {
@@ -233,12 +233,11 @@ func ReadTrueLabels(pathToFile, sheetName string) ([]int, error) {
 	labels := make([]int, 0, len(rows))
 	for _, row := range rows {
 		if len(row) == 0 {
-			continue // Пропускаем пустые строки
+			continue
 		}
 
-		// Берём последний столбец (метки)
 		lastCol := row[len(row)-1]
-		label, err := strconv.Atoi(lastCol) // Если метка целочисленная
+		label, err := strconv.Atoi(lastCol)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse label '%s': %v", lastCol, err)
 		}

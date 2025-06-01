@@ -19,8 +19,7 @@ func main() {
 // Classic K-means example
 func demoKmeans() {
 	moduleName := "GoKmeans: "
-	// kmeans.KmeansGo("clustering_datasets.xlsx", "Blobs", 3, 10000, 0.0001, true, 250) - for mini-batch
-	clusters, err := kmeans.KmeansGo("clustering_datasets.xlsx", "Moons", 2, 10000, 0.0001, true, 0)
+	clusters, err := kmeans.KmeansGo("clustering_datasets.xlsx", "Blobs", 3, 10000, 0.0001, true, 500)
 	if err != nil {
 		fmt.Println(moduleName, " : ", err)
 	}
@@ -32,12 +31,12 @@ func demoKmeans() {
 	fmt.Println("Sihoulete:", metric.SilhouetteScore(clusters))
 
 	// ARI
-	points, err := kmeans.TakePointsFromExel("clustering_datasets.xlsx", "Moons")
+	points, err := kmeans.TakePointsFromExel("clustering_datasets.xlsx", "Blobs")
 	if err != nil {
 		log.Panic("Failed to PARSE th file with DATA")
 	}
 	y_pred := metric.GetPredictedLabels(clusters, points)
-	y_true, err := metric.ReadTrueLabels("clustering_datasets.xlsx", "Moons")
+	y_true, err := metric.ReadTrueLabels("clustering_datasets.xlsx", "Blobs")
 	if err != nil {
 		log.Panic("Failed to PARSE th file with DATA")
 	}

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from sklearn.datasets import make_blobs, make_moons, make_circles
 import os
 
-n_samples = 1000
+n_samples = 50000
 random_state = 42
 output_file = "clustering_datasets.xlsx"
 plot_file = "data_visualization.png"
